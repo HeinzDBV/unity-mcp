@@ -164,55 +164,15 @@ namespace MCPForUnity.Editor.Tools.Custom
 
 ## Tools Prioritarias para Este Fork
 
-### 1. Package Manager ✅ IMPLEMENTADO
-**Propósito:** Gestión completa de Unity Packages desde el MCP client.
+### 1. Package Importer ✅ PRIORITARIO
+**Propósito:** Importar packages de Git URL o Package Registry sin salir del MCP client.
 
 **Casos de uso:**
-- Listar todos los packages instalados
-- Buscar packages en el Unity Registry
-- Instalar packages (registry, Git URL, tarball, local)
-- Remover packages
-- Actualizar packages a versiones específicas o última versión
-- Verificar qué packages tienen actualizaciones disponibles
-- Obtener información detallada de cualquier package
-- Embeber packages para modificarlos localmente
+- Instalar Cinemachine, Input System, etc. via prompts
 - Automatizar setup de proyectos nuevos
+- Validar dependencias instaladas
 
-**Implementación:** 
-- **Python:** `MCPForUnity/UnityMcpServer~/src/tools/custom/package_manager.py`
-- **C#:** `MCPForUnity/Editor/Tools/Custom/PackageManagerTool.cs`
-
-**Tools disponibles:**
-- `list_packages` - Lista packages instalados (con filtros para builtin y dependencies)
-- `search_packages` - Busca packages en el registry por nombre/keywords
-- `add_package` - Agrega package desde registry, Git, tarball o local
-- `remove_package` - Remueve un package
-- `get_package_info` - Info detallada (versión, autor, dependencias, etc.)
-- `update_package` - Actualiza a versión específica o última
-- `check_updates` - Verifica packages con actualizaciones disponibles
-- `refresh_packages` - Refresca la caché del Package Manager
-- `embed_package` - Embebe package en Packages/ para edición local
-
-**Ejemplos de uso:**
-```python
-# Listar todos los packages (sin builtin)
-await list_packages(include_builtin=False, include_dependencies=False)
-
-# Buscar Cinemachine
-await search_packages(query="cinemachine")
-
-# Instalar desde registry
-await add_package(package_identifier="com.unity.cinemachine", version="2.9.0")
-
-# Instalar desde Git
-await add_package(package_identifier="https://github.com/user/repo.git#v1.0.0")
-
-# Actualizar a última versión
-await update_package(package_name="com.unity.cinemachine")
-
-# Ver qué se puede actualizar
-await check_updates()
-```
+**Implementación:** Ver `docs/CUSTOM_TOOLS.md` sección "Implementaciones Recomendadas"
 
 ### 2. Scene Context Analyzer ✅ PRIORITARIO
 **Propósito:** Proporcionar análisis profundo de la escena actual para contexto de IA.
