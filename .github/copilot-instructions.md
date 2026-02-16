@@ -95,6 +95,25 @@ Use `deploy-dev.bat` (Windows) to sync local changes to installed package cache 
    }
    ```
 
+**Proceso Completo de Desarrollo (7 Pasos):**
+
+Para crear una nueva herramienta desde cero, sigue esta guía paso a paso en `newtoolsguide.md`:
+
+1. **Planificación:** Define propósito, interfaz, casos de uso y dependencias
+2. **Python Side:** Crea el MCP tool con decorador y parámetros tipados
+3. **C# Side:** Implementa el handler de Unity con validación robusta
+4. **Integración:** Agrega a PythonToolsAsset y reconstruye servidor
+5. **Testing Local:** Usa deploy-dev.bat para iteración rápida
+6. **Debugging:** Checklist completo para resolver problemas comunes
+7. **Documentación:** Actualiza guías con la nueva herramienta
+
+**Ver `.github/newtoolsguide.md` → "Proceso Detallado de Creación de Herramientas"** para un ejemplo completo paso a paso de `analyze_scene` que incluye:
+- Todos los checkpoints de validación
+- Código Python y C# completo con comentarios
+- Tests unitarios con mocks
+- Debugging de problemas comunes
+- Patrones avanzados (async, multi-acción, paginación)
+
 **Workflow completo:**
 1. Crear ambos archivos siguiendo patrones de `newtoolsguide.md`
 2. Agregar `.py` a `PythonToolsAsset` en Unity (auto-sync a `tools/custom/`)
@@ -261,3 +280,5 @@ python tools/stress_mcp.py --duration 30 --clients 4
 # - Server logs: "Registered X MCP tools" incluye tu tool
 # - MCP client: tool aparece en lista de herramientas disponibles
 ```
+### Testing en el Fork
+- Todos la documentación creada para explicar los cambios hechos debe estar en .github\docs...

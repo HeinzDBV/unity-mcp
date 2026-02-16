@@ -120,6 +120,204 @@ The script reads a conversation from `stdin` and writes the pruned version to `s
 
 These defaults dramatically cut token usage without affecting essential information.
 
+## Adding Custom Tools
+
+**🎯 Para desarrollo de custom tools en este fork, sigue la guía completa en `.github/newtoolsguide.md`**
+
+### Proceso Resumido (Ver guía completa para detalles)
+
+El proceso de creación de una herramienta nueva requiere dos archivos sincronizados:
+
+#### 1. Planificación Inicial
+
+Antes de escribir código:
+- Define el propósito y casos de uso
+- Lista los parámetros requeridos y opcionales
+- Identifica qué APIs de Unity necesitas
+- Documenta ejemplos de uso esperados
+
+Ver `.github/newtoolsguide.md` → "Proceso Detallado" → "Paso 1: Planificación"
+
+#### 2. Python Side (MCP Tool)
+
+**Ubicación:** `MCPForUnity/UnityMcpServer~/src/tools/custom/my_tool.py`
+
+```python
+from typing import Annotated, Any
+from mcp.server.fastmcp import Context
+from registry import mcp_for_unity_tool
+from unity_connection import send_command_with_retry
+
+@mcp_for_unity_tool(description="Descripción clara y concisa")
+async def my_tool(
+    ctx: Context,
+    required_param: Annotated[str, "Descripción del parámetro"],
+    optional_param: Annotated[int, "Parámetro opcional"] | None = None
+) -> dict[str, Any]:
+    """Docstring completo con Args y Returns."""
+    await ctx.info(f"Ejecutando my_tool con {required_param}")
+    
+    # Filtrar None antes de enviar
+    params = {
+        "action": "main",
+        "required_param": required_param,
+        "optional_param": optional_param
+    }
+    params = {k: v for k, v in params.items() if v is not None}
+    
+    # Comunicación con retry automático
+    response = send_command_with_retry("my_tool", params)
+    
+    # Validar y retornar
+    if not isinstance(response, dict):
+        return {"success": False, "message": "Respuesta inválida"}
+    
+    return response
+```
+
+**Elementos críticos:**
+- `@mcp_for_unity_tool` con `description`
+- Parámetros con `Annotated[Type, "docs"]`
+- `await ctx.info()` para logs (no `print()`)
+- Filtrar valores `None`
+- `send_command_with_retry()` para Unity
+- Validar tipo de respuesta
+- Try/except para errores
+
+Ver `.github/newtoolsguide.md` → "Paso 2: Crear Archivo Python"
+
+#### 3. C# Side (Unity Handler)
+
+**Ubicación:** `MCPForUnity/Editor/Tools/Custom/MyTool.cs`
+
+```csharp
+using Newtonsoft.Json.Linq;
+using MCPForUnity.Editor.Helpers;
+
+namespace MCPForUnity.Editor.Tools.Custom
+{
+    /// <summary>
+    /// Descripción de la herramienta y su propósito.
+    /// </summary>
+    [McpForUnityTool("my_tool")]  // Debe coincidir con función Python
+    public static class MyToolHandler
+    {
+        public static object HandleCommand(JObject @params)
+        {
+            // 1. VALIDACIÓN
+            string action = @params["action"]?.ToString();
+            string requiredParam = @params["required_param"]?.ToString();
+            int? optionalParam = @params["optional_param"]?.ToObject<int?>();
+            
+            if (string.IsNullOrEmpty(requiredParam))
+            {
+                return Response.Error("required_param es obligatorio");
+            }
+            
+            // 2. EJECUCIÓN
+            try
+            {
+                var result = PerformAction(requiredParam, optionalParam);
+                
+                // 3. RESPUESTA
+                return Response.Success("Operación exitosa", new { result });
+            }
+            catch (System.Exception ex)
+            {
+                // NUNCA throw, siempre Response.Error
+                return Response.Error($"Error: {ex.Message}");
+            }
+        }
+        
+        private static object PerformAction(string param, int? optional)
+        {
+            // Tu lógica aquí
+            return null;
+        }
+    }
+}
+```
+
+**Elementos críticos:**
+- `[McpForUnityTool("nombre")]` coincide con Python
+- XML `<summary>` documenta propósito
+- `HandleCommand(JObject @params)` signature exacta
+- `?.ToObject<Type>()` para conversión segura
+- Try/catch rodea toda la lógica
+- `Response.Error()` en vez de throw
+- `Response.Success()` con data estructurado
+
+Ver `.github/newtoolsguide.md` → "Paso 3: Crear Handler C#"
+
+#### 4. Integración y Testing
+
+```bash
+# Deploy rápido sin rebuild
+.\deploy-dev.bat
+
+# Restart Unity Editor (cambios C#)
+# Restart MCP Client (cambios Python)
+
+# Verificar logs
+# Unity Console: "Auto-discovered X tools" incluye tu tool
+# Server logs: "Registered X MCP tools" incluye tu tool
+
+# Testing unitario
+pytest tests/test_my_tool.py -v
+```
+
+Ver `.github/newtoolsguide.md` → "Paso 4-6: Integración, Testing y Debugging"
+
+### Debugging Checklist Rápido
+
+**Tool no aparece:**
+- [ ] Archivo `.py` en `tools/custom/` o en `PythonToolsAsset`
+- [ ] Decorador `@mcp_for_unity_tool` presente
+- [ ] Servidor reconstruido ("Rebuild Server")
+- [ ] `[McpForUnityTool("nombre")]` en clase C#
+- [ ] Método `HandleCommand(JObject)` existe
+
+**Tool falla al ejecutar:**
+- [ ] Nombres coinciden (Python función ↔ C# atributo)
+- [ ] Parámetros `None` filtrados en Python
+- [ ] Validación de parámetros en C#
+- [ ] Try/catch en HandleCommand
+- [ ] No hay excepciones sin capturar
+
+**Problemas de conexión:**
+- [ ] Unity Bridge corriendo (Window > MCP for Unity)
+- [ ] Debug logs habilitados
+- [ ] Puerto correcto en `~/.unity-mcp/unity-mcp-status-*.json`
+- [ ] Framing protocol negociado (`FRAMING=1`)
+
+### Ejemplos Completos
+
+Para ver implementaciones completas de herramientas con:
+- Validación exhaustiva de parámetros
+- Operaciones asíncronas en Unity
+- Paginación de resultados
+- Jerarquías recursivas
+- Tests unitarios completos
+
+**Consulta `.github/newtoolsguide.md` → "Proceso Detallado de Creación de Herramientas"**
+
+Esta guía incluye un ejemplo paso a paso de `analyze_scene`, una herramienta completa que:
+- Analiza escenas de Unity
+- Recolecta estadísticas de componentes
+- Construye jerarquías con límite de profundidad
+- Maneja parámetros opcionales correctamente
+- Incluye tests unitarios con mocks
+
+### Recursos Adicionales
+
+- **Guía completa:** `.github/newtoolsguide.md` - Proceso detallado con ejemplos
+- **Docs oficiales:** `docs/CUSTOM_TOOLS.md` - Guía original del proyecto base
+- **Ejemplos built-in:** `MCPForUnity/Editor/Tools/` - Tools oficiales para referencia
+- **Tests:** `tests/` - Ejemplos de testing con mocks
+- **Stress test:** `tools/stress_mcp.py` - Validación de estabilidad
+
+---
+
 ## Finding Unity Package Cache Path
 
 Unity stores Git packages under a version-or-hash folder. Expect something like:
